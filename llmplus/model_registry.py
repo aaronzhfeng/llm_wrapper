@@ -1,8 +1,8 @@
 import os
 from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
 from functools import cache
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -37,6 +37,9 @@ class Provider(Enum):
     DEEPSEEK = "deepseek"
     VLLM = "vllm"
     SGLANG = "sglang"
+    OPENROUTER = "openrouter"
+    ANTHROPIC = "anthropic"
+    XAI = "xai"
 
 
 MODEL_REGISTRY: dict[Provider, ProviderMeta] = {
@@ -95,6 +98,51 @@ MODEL_REGISTRY: dict[Provider, ProviderMeta] = {
         models={
             "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B": ModelMeta(
                 "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+            ),
+        },
+    ),
+    Provider.OPENROUTER: ProviderMeta(
+        env_key="OPENROUTER_API_KEY",
+        base_url="https://openrouter.ai/api/v1",
+        supports_multi=False,
+        models={
+            "qwen/qwen3-235b-a22b-2507": ModelMeta(
+                "qwen/qwen3-235b-a22b-2507",
+            ),
+            "deepseek/deepseek-r1-0528": ModelMeta(
+                "deepseek/deepseek-r1-0528",
+            ),
+            "x-ai/grok-4": ModelMeta(
+                "x-ai/grok-4",
+            ),
+            "google/gemini-2.5-flash": ModelMeta(
+                "google/gemini-2.5-flash",
+            ),
+            "anthropic/claude-sonnet-4": ModelMeta(
+                "anthropic/claude-sonnet-4",
+            ),
+        },
+    ),
+    Provider.ANTHROPIC: ProviderMeta(
+        env_key="ANTHROPIC_API_KEY",
+        base_url="https://api.anthropic.com/v1",
+        supports_multi=False,
+        models={
+            "claude-sonnet-4-20250514": ModelMeta(
+                "claude-sonnet-4-20250514",
+            )
+        },
+    ),
+    Provider.XAI: ProviderMeta(
+        env_key="XAI_API_KEY",
+        base_url="https://api.x.ai/v1",
+        supports_multi=False,
+        models={
+            "grok-4-0709": ModelMeta(
+                "grok-4-0709",
+            ),
+            "grok-4-fast-reasoning": ModelMeta(
+                "grok-4-fast-reasoning",
             ),
         },
     ),
