@@ -170,9 +170,10 @@ class LLMClient:
             self.session_stats[model] = ModelTokenUsage()
         return self.session_stats[model]
 
-    def get_token_usage_dict(self) -> dict[str, dict[str, int]]:
+    def get_token_usage_dict(self, include_per_request: bool = False) -> dict[str, dict]:
         """Get token usage statistics as a dictionary."""
-        return {model: stats.to_dict() for model, stats in self.session_stats.items()}
+        return {model: stats.to_dict(include_per_request=include_per_request) 
+                for model, stats in self.session_stats.items()}
 
     def reset_usage(self) -> None:
         """Reset the session token usage statistics."""
@@ -246,6 +247,14 @@ class LLMClient:
             async with request_sem:
                 msgs = self._format_chat(prompt)
                 gen_kwargs = gen_cfg.to_kwargs(model_meta)
+                
+                # Log request parameters for debugging (only if logger level is DEBUG)
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(
+                        f"API request: model={model_meta.name}, "
+                        f"kwargs={gen_kwargs}, msg_count={len(msgs)}"
+                    )
+                
                 resp = await self._client_async.chat.completions.create(
                     model=model_meta.name,
                     messages=msgs,
@@ -255,7 +264,24 @@ class LLMClient:
 
         resp = await _send()
         self._add_token_usage(model_meta.name, resp.usage, len(resp.choices))
-        return [c.message.content for c in resp.choices]
+        
+        # Handle None content (can happen with reasoning models)
+        results = []
+        for i, choice in enumerate(resp.choices):
+            content = choice.message.content
+            if content is None:
+                # Check if there was a refusal
+                if choice.message.refusal:
+                    logger.warning(
+                        f"Model refused to respond (choice {i}): {choice.message.refusal}"
+                    )
+                else:
+                    logger.warning(
+                        f"Model returned None content (choice {i}, finish_reason: {choice.finish_reason})"
+                    )
+                content = ""  # Use empty string instead of None
+            results.append(content)
+        return results
 
     def _format_chat(self, inp: str | list[dict]):
         if isinstance(inp, str):
